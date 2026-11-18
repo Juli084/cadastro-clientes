@@ -17,35 +17,53 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@v7
-
       - name: MongoDB em modo réplica
         working-directory: .
         run: docker compose up -d --wait
-
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           cache-dependency-path: backend/package-lock.json
-
       - run: npm ci
       - run: npx prisma generate
       - run: npm run typecheck
-      - run: npm test
+      - name: Testes de unidade e da API
+        run: npm test
 
   frontend:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: frontend
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+      - name: MongoDB em modo réplica
+        run: docker compose up -d --wait
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run build
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+      - name: Dependências da API (os testes de ponta a ponta sobem a API)
+        working-directory: backend
+        run: npm ci && npx prisma generate
+      - working-directory: frontend
+        run: npm ci
+      - working-directory: frontend
+        run: npm run lint
+      - working-directory: frontend
+        run: npm run typecheck
+      - name: Navegador para os testes de ponta a ponta
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Primeiro acesso, cadastro, histórico, exportação e login
+        working-directory: frontend
+        run: npm run test:e2e
+      - name: Guardar o rastro dos testes que falharam
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright
+          path: frontend/test-results/
+          retention-days: 7
