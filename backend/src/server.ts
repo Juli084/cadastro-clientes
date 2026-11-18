@@ -8,7 +8,11 @@ try {
 }
 
 const prisma = new PrismaClient();
-const app = await criarApp(prisma, process.env.CORS_ORIGIN ?? 'http://localhost:5173');
+const app = await criarApp(prisma, {
+  origemDoFrontend: process.env.ORIGEM_DO_FRONTEND || null,
+  // Em produção o cookie só trafega por HTTPS. Só desligue em desenvolvimento local.
+  cookieSeguro: process.env.COOKIE_SEGURO !== 'false',
+});
 
 async function encerrar(codigo: number) {
   await app.close();

@@ -7,13 +7,74 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Customer {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  name       String
-  email      String   @unique
-  status     Boolean  @default(true)
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+/// Quem usa o sistema: o dono do negócio e a equipe.
+model Usuario {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  nome      String
+  email     String   @unique
+  /// scrypt$N$r$p$sal$hash, nunca a senha.
+  senhaHash String
+  criadoEm  DateTime @default(now())
+  sessoes   Sessao[]
 
-  @@map("customers")
+  @@map("usuarios")
+}
+
+/// Sessão de login. O cookie leva o token; aqui fica só o SHA-256 dele.
+model Sessao {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  tokenHash String   @unique
+  usuarioId String   @db.ObjectId
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  criadaEm  DateTime @default(now())
+  expiraEm  DateTime
+
+  @@index([usuarioId])
+  @@map("sessoes")
+}
+
+model Cliente {
+  id              String      @id @default(auto()) @map("_id") @db.ObjectId
+  nome            String
+  /// Nome sem acento e em minúsculas, para a busca ignorar acentuação.
+  nomeBusca       String
+  email           String?
+  /// Só dígitos, com DDI: 5515999990000.
+  telefone        String?
+  /// CPF ou CNPJ, só dígitos, com os verificadores conferidos.
+  documento       String?
+  cidade          String?
+  origem          String?
+  etiquetas       String[]
+  /// lead, cliente ou inativo.
+  situacao        String      @default("lead")
+  /// Consentimento para receber mensagens de divulgação (LGPD).
+  aceitaMensagens Boolean     @default(false)
+  observacoes     String?
+  proximoContato  DateTime?
+  ultimoContato   DateTime?
+  criadoEm        DateTime    @default(now())
+  atualizadoEm    DateTime    @updatedAt
+  interacoes      Interacao[]
+
+  @@index([nomeBusca])
+  @@index([proximoContato])
+  @@index([situacao])
+  @@map("clientes")
+}
+
+/// Registro de cada contato com o cliente: ligação, mensagem, visita, orçamento, venda.
+model Interacao {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  clienteId String   @db.ObjectId
+  cliente   Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  tipo      String
+  texto     String
+  /// Em centavos, para orçamento e venda.
+  valor     Int?
+  autor     String
+  criadaEm  DateTime @default(now())
+
+  @@index([clienteId, criadaEm])
+  @@map("interacoes")
 }
