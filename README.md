@@ -6,6 +6,12 @@ para nenhum orçamento ficar esquecido.
 
 API em Node.js com Fastify, Prisma e MongoDB; interface em React.
 
+![Carteira com o painel do dia, a busca e os clientes com etiquetas e data de retorno](docs/carteira.webp)
+
+![Ficha do cliente com WhatsApp, próximo contato, registro de contato e histórico](docs/ficha.webp)
+
+Clientes e telefones das imagens são fictícios, cadastrados num banco de teste local.
+
 ## O que faz
 
 - **Painel do dia.** Mostra quantos retornos são para hoje e quantos estão atrasados, os
